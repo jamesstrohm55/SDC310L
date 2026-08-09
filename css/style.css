@@ -1,0 +1,314 @@
+/* ---------------------------------------------------------------------------
+   SDC310L Online Store — James Strohm (jamstr441)
+   Base stylesheet: store look and feel for the catalog and cart pages.
+   --------------------------------------------------------------------------- */
+
+:root {
+    --forest:      #1f4436;
+    --forest-dark: #16332a;
+    --moss:        #3d7a5f;
+    --sand:        #f6f4ef;
+    --paper:       #ffffff;
+    --ink:         #22262b;
+    --ink-soft:    #5c6570;
+    --line:        #dfdcd4;
+    --amber:       #c2691b;
+    --radius:      6px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--sand);
+    color: var(--ink);
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.wrap {
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+/* --- Header ------------------------------------------------------------- */
+
+.site-header {
+    background: var(--forest);
+    color: var(--paper);
+    border-bottom: 3px solid var(--amber);
+}
+
+.header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+}
+
+.brand {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 10px;
+    color: var(--paper);
+    text-decoration: none;
+}
+
+.brand-mark {
+    color: var(--amber);
+    font-size: 20px;
+    line-height: 1;
+}
+
+.brand-name {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.site-nav a {
+    color: #d9e5df;
+    text-decoration: none;
+    font-weight: 600;
+    padding: 6px 12px;
+    margin-left: 4px;
+    border-radius: var(--radius);
+}
+
+.site-nav a:hover  { background: var(--forest-dark); color: var(--paper); }
+.site-nav a.active { background: var(--moss); color: var(--paper); }
+
+/* --- Page body ---------------------------------------------------------- */
+
+main.wrap {
+    padding-top: 32px;
+    padding-bottom: 48px;
+}
+
+.page-intro h1 {
+    margin: 0 0 4px;
+    font-size: 27px;
+    color: var(--forest);
+}
+
+.page-intro p {
+    margin: 0 0 22px;
+    color: var(--ink-soft);
+}
+
+.notice {
+    background: #fdf3e6;
+    border: 1px solid #e9d3b2;
+    border-left: 4px solid var(--amber);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin: 0 0 24px;
+    font-size: 14px;
+    color: #6b4a24;
+}
+
+.notice code {
+    background: #f4e5d0;
+    padding: 1px 5px;
+    border-radius: 3px;
+}
+
+/* --- Tables ------------------------------------------------------------- */
+
+.catalog-table,
+.cart-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.catalog-table th,
+.cart-table th {
+    background: var(--forest);
+    color: var(--paper);
+    text-align: left;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 11px 14px;
+    white-space: nowrap;
+}
+
+.catalog-table td,
+.cart-table td {
+    padding: 14px;
+    border-top: 1px solid var(--line);
+    vertical-align: top;
+}
+
+.catalog-table tbody tr:nth-child(even),
+.cart-table tbody tr:nth-child(even) {
+    background: #fbfaf7;
+}
+
+.col-id    { width: 90px;  color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.col-name  { width: 200px; font-weight: 600; }
+.col-desc  { color: var(--ink-soft); font-size: 14px; }
+.col-cost,
+.col-total { width: 110px; text-align: right; font-variant-numeric: tabular-nums; }
+.col-qty   { width: 130px; text-align: center; }
+.col-actions { width: 210px; white-space: nowrap; }
+
+.cart-table .col-qty { width: 150px; }
+
+/* --- Buttons and controls ----------------------------------------------- */
+
+.btn {
+    display: inline-block;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 7px 13px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--paper);
+    color: var(--ink);
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.btn:hover:not(:disabled) { background: #f0efe9; }
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-primary,
+.btn-checkout {
+    background: var(--forest);
+    border-color: var(--forest);
+    color: var(--paper);
+    font-size: 14px;
+    padding: 9px 20px;
+}
+
+.btn-primary:hover:not(:disabled) { background: var(--forest-dark); }
+
+.btn-checkout {
+    background: var(--amber);
+    border-color: var(--amber);
+}
+
+.btn-add    { border-color: var(--moss); color: var(--moss); }
+.btn-remove { border-color: #b8babd; color: var(--ink-soft); }
+
+.qty-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-step {
+    width: 28px;
+    padding: 4px 0;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.qty-value {
+    min-width: 24px;
+    text-align: center;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.page-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin: 0;
+}
+
+/* --- Order summary ------------------------------------------------------ */
+
+.order-summary {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px 22px;
+    margin: 0 0 24px auto;
+    max-width: 420px;
+}
+
+.order-summary h2 {
+    margin: 0 0 12px;
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--forest);
+}
+
+.order-summary dl {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px 16px;
+    margin: 0;
+}
+
+.order-summary dt { color: var(--ink-soft); }
+
+.order-summary dd {
+    margin: 0;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.order-summary .grand {
+    border-top: 2px solid var(--line);
+    padding-top: 10px;
+    margin-top: 2px;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--forest);
+}
+
+.empty-cart {
+    background: var(--paper);
+    border: 1px dashed var(--line);
+    border-radius: var(--radius);
+    padding: 32px;
+    text-align: center;
+    color: var(--ink-soft);
+}
+
+/* --- Footer ------------------------------------------------------------- */
+
+.site-footer {
+    background: var(--forest-dark);
+    color: #b7c7c0;
+    padding: 22px 0;
+    font-size: 13px;
+}
+
+.site-footer p { margin: 0 0 4px; }
+
+.site-footer .build-note {
+    color: #8ba398;
+    font-size: 12px;
+}
+
+/* --- Narrow screens ----------------------------------------------------- */
+
+@media (max-width: 820px) {
+    .catalog-table .col-desc { display: none; }
+    .catalog-table th,
+    .cart-table th { font-size: 11px; }
+    .order-summary { max-width: none; }
+}

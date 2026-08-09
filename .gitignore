@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Editors / IDEs
+.vscode/
+.idea/
+*.swp
+*~
+
+# Word / Office lock files
+~$*.docx
+~$*.doc
+
+# Local environment
+config/local.php
+*.log
