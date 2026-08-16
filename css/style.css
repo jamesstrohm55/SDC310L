@@ -1,6 +1,6 @@
 /* ---------------------------------------------------------------------------
    SDC310L Online Store — James Strohm (jamstr441)
-   Base stylesheet: store look and feel for the catalog and cart pages.
+   Store look and feel for the catalog and cart pages.
    --------------------------------------------------------------------------- */
 
 :root {
@@ -13,6 +13,7 @@
     --ink-soft:    #5c6570;
     --line:        #dfdcd4;
     --amber:       #c2691b;
+    --amber-dark:  #a3560f;
     --radius:      6px;
 }
 
@@ -74,6 +75,7 @@ body {
 }
 
 .site-nav a {
+    display: inline-block;
     color: #d9e5df;
     text-decoration: none;
     font-weight: 600;
@@ -84,6 +86,19 @@ body {
 
 .site-nav a:hover  { background: var(--forest-dark); color: var(--paper); }
 .site-nav a.active { background: var(--moss); color: var(--paper); }
+
+.nav-badge {
+    display: inline-block;
+    min-width: 20px;
+    margin-left: 7px;
+    padding: 1px 6px;
+    background: var(--amber);
+    color: var(--paper);
+    border-radius: 10px;
+    font-size: 12px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
 
 /* --- Page body ---------------------------------------------------------- */
 
@@ -114,6 +129,13 @@ main.wrap {
     color: #6b4a24;
 }
 
+.notice-success {
+    background: #eaf3ee;
+    border-color: #c3ddcf;
+    border-left-color: var(--moss);
+    color: #24503c;
+}
+
 .notice code {
     background: #f4e5d0;
     padding: 1px 5px;
@@ -122,22 +144,29 @@ main.wrap {
 
 /* --- Tables ------------------------------------------------------------- */
 
-.catalog-table,
-.cart-table {
-    width: 100%;
-    border-collapse: collapse;
+/* The scroll container carries the border and the rounded corners, because
+   border-radius has no effect on a table using border-collapse: collapse.
+   It also keeps a wide table inside the page instead of letting the whole
+   document scroll sideways on a narrow screen. */
+.table-scroll {
     background: var(--paper);
     border: 1px solid var(--line);
     border-radius: var(--radius);
-    overflow: hidden;
+    overflow-x: auto;
     margin-bottom: 24px;
+}
+
+.catalog-table,
+.cart-table {
+    width: 100%;
+    min-width: 620px;
+    border-collapse: collapse;
 }
 
 .catalog-table th,
 .cart-table th {
     background: var(--forest);
     color: var(--paper);
-    text-align: left;
     font-size: 12px;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -157,15 +186,33 @@ main.wrap {
     background: #fbfaf7;
 }
 
+/* Alignment is declared once per column at a specificity that beats the `th`
+   rules above, so each header lines up with the values beneath it. */
+.catalog-table .col-id,
+.catalog-table .col-name,
+.catalog-table .col-desc,
+.catalog-table .col-actions,
+.cart-table .col-id,
+.cart-table .col-name,
+.cart-table .col-actions { text-align: left; }
+
+.catalog-table .col-cost,
+.catalog-table .col-total,
+.cart-table .col-cost,
+.cart-table .col-total { text-align: right; }
+
+.catalog-table .col-qty,
+.cart-table .col-qty { text-align: center; }
+
 .col-id    { width: 90px;  color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 .col-name  { width: 200px; font-weight: 600; }
-.col-desc  { color: var(--ink-soft); font-size: 14px; }
+.col-desc  { color: var(--ink-soft); font-size: 14px; min-width: 220px; }
 .col-cost,
-.col-total { width: 110px; text-align: right; font-variant-numeric: tabular-nums; }
-.col-qty   { width: 130px; text-align: center; }
+.col-total { width: 110px; font-variant-numeric: tabular-nums; }
+.col-qty   { width: 140px; }
 .col-actions { width: 210px; white-space: nowrap; }
 
-.cart-table .col-qty { width: 150px; }
+.cart-table .col-actions { width: 110px; }
 
 /* --- Buttons and controls ----------------------------------------------- */
 
@@ -185,8 +232,17 @@ main.wrap {
 
 .btn:hover:not(:disabled) { background: #f0efe9; }
 
+.btn:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+}
+
+/* A solid muted palette rather than blanket opacity: fading a button drags
+   its label's contrast down with it and leaves the text unreadable. */
 .btn:disabled {
-    opacity: 0.5;
+    background: #f0efe9;
+    border-color: var(--line);
+    color: #767e87;
     cursor: not-allowed;
 }
 
@@ -199,20 +255,26 @@ main.wrap {
     padding: 9px 20px;
 }
 
-.btn-primary:hover:not(:disabled) { background: var(--forest-dark); }
-
 .btn-checkout {
     background: var(--amber);
     border-color: var(--amber);
 }
 
+/* Each filled button needs its own hover rule: the generic .btn hover is more
+   specific than the colour rules above and would otherwise wash the button to
+   near-white while its label stays white. */
+.btn-primary:hover:not(:disabled)  { background: var(--forest-dark); }
+.btn-checkout:hover:not(:disabled) { background: var(--amber-dark); }
+
 .btn-add    { border-color: var(--moss); color: var(--moss); }
 .btn-remove { border-color: #b8babd; color: var(--ink-soft); }
 
-.qty-control {
+.qty-control,
+.action-control {
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    margin: 0;
 }
 
 .btn-step {
@@ -235,6 +297,8 @@ main.wrap {
     align-items: center;
     margin: 0;
 }
+
+.page-actions form { margin: 0; }
 
 /* --- Order summary ------------------------------------------------------ */
 
@@ -279,13 +343,20 @@ main.wrap {
     color: var(--forest);
 }
 
-.empty-cart {
+.empty-state {
     background: var(--paper);
     border: 1px dashed var(--line);
     border-radius: var(--radius);
     padding: 32px;
     text-align: center;
     color: var(--ink-soft);
+    margin: 0 0 24px;
+}
+
+.empty-state code {
+    background: var(--sand);
+    padding: 1px 5px;
+    border-radius: 3px;
 }
 
 /* --- Footer ------------------------------------------------------------- */
@@ -308,7 +379,6 @@ main.wrap {
 
 @media (max-width: 820px) {
     .catalog-table .col-desc { display: none; }
-    .catalog-table th,
-    .cart-table th { font-size: 11px; }
+    .catalog-table { min-width: 520px; }
     .order-summary { max-width: none; }
 }
