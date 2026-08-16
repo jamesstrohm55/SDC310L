@@ -4,45 +4,32 @@
  *
  * SDC310L Online Store — James Strohm (jamstr441)
  *
- * Week 2 scope: page framework only. The line items below come from a
- * hardcoded placeholder array matching the quantities shown on the catalog
- * page. Week 3 replaces $placeholderCart with the session cart, joins it
- * against the onlinestore.products table, and makes Check Out functional.
+ * Week 3: the session cart is joined against the onlinestore.products table
+ * to build the line items, totals are computed in whole cents, and Check Out
+ * clears the cart and returns to the catalog.
  */
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/includes/cart.php';
+require_once __DIR__ . '/includes/products.php';
+require_once __DIR__ . '/includes/session.php';
+
+session_begin();
+
+$cart = session_cart();
+
+// Only the products actually in the cart are fetched, rather than the whole
+// catalog, so the query stays proportional to the order.
+$pdo      = require __DIR__ . '/config/database.php';
+$products = products_by_ids($pdo, array_keys($cart));
+
+$lines  = cart_lines($cart, $products);
+$totals = cart_totals($lines);
 
 $pageTitle = 'Shopping Cart';
 $activeNav = 'cart';
-
-// Order total rules from the Course Project Overview.
-const TAX_RATE      = 0.05;  // 5% of the pre-tax total
-const SHIPPING_RATE = 0.10;  // 10% of the pre-tax total
-
-// --- Placeholder data (Week 3 replaces this with the session cart) ---------
-// Only products with a quantity of at least one appear in the cart.
-$placeholderCart = [
-    [
-        'product_id'   => 1,
-        'product_name' => 'Trailhead 45L Backpack',
-        'quantity'     => 2,
-        'product_cost' => 129.99,
-    ],
-    [
-        'product_id'   => 3,
-        'product_name' => 'Cascade 2-Person Tent',
-        'quantity'     => 1,
-        'product_cost' => 249.00,
-    ],
-];
-
-// --- Order totals ----------------------------------------------------------
-$itemsTotal = 0.00;
-foreach ($placeholderCart as $line) {
-    $itemsTotal += $line['quantity'] * $line['product_cost'];
-}
-
-$tax        = round($itemsTotal * TAX_RATE, 2);
-$shipping   = round($itemsTotal * SHIPPING_RATE, 2);
-$orderTotal = $itemsTotal + $tax + $shipping;
+$cartCount = cart_item_count($cart);
 
 require __DIR__ . '/includes/header.php';
 ?>
@@ -52,63 +39,90 @@ require __DIR__ . '/includes/header.php';
     <p>Review your order before checking out.</p>
 </div>
 
-<p class="notice">
-    <strong>Week 2 build.</strong> The cart framework, line-item table, and
-    order summary are in place, populated with placeholder data. The cart is
-    connected to the session and the database in Week 3.
-</p>
+<?php if ($lines === []): ?>
 
-<?php if (empty($placeholderCart)): ?>
+    <p class="empty-state">
+        Your cart is empty. Head back to the catalog to add something to it.
+    </p>
 
-    <p class="empty-cart">Your cart is empty.</p>
+    <p class="page-actions">
+        <a class="btn btn-primary" href="index.php">Continue Shopping</a>
+    </p>
 
 <?php else: ?>
 
-    <table class="cart-table">
-        <thead>
-            <tr>
-                <th scope="col" class="col-id">Product ID</th>
-                <th scope="col" class="col-name">Product Name</th>
-                <th scope="col" class="col-qty">Quantity Ordered</th>
-                <th scope="col" class="col-cost">Product Cost</th>
-                <th scope="col" class="col-total">Product Total</th>
-            </tr>
-        </thead>
-        <tbody>
-        <?php foreach ($placeholderCart as $line): ?>
-            <tr>
-                <td class="col-id"><?php echo (int) $line['product_id']; ?></td>
-                <td class="col-name"><?php echo htmlspecialchars($line['product_name']); ?></td>
-                <td class="col-qty"><?php echo (int) $line['quantity']; ?></td>
-                <td class="col-cost">$<?php echo number_format($line['product_cost'], 2); ?></td>
-                <td class="col-total">$<?php echo number_format($line['quantity'] * $line['product_cost'], 2); ?></td>
-            </tr>
-        <?php endforeach; ?>
-        </tbody>
-    </table>
+    <div class="table-scroll">
+        <table class="cart-table">
+            <thead>
+                <tr>
+                    <th scope="col" class="col-id">Product ID</th>
+                    <th scope="col" class="col-name">Product Name</th>
+                    <th scope="col" class="col-qty">Quantity Ordered</th>
+                    <th scope="col" class="col-cost">Product Cost</th>
+                    <th scope="col" class="col-total">Product Total</th>
+                    <th scope="col" class="col-actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($lines as $line): ?>
+                <?php $label = htmlspecialchars($line['product_name']); ?>
+                <tr>
+                    <td class="col-id"><?php echo $line['product_id']; ?></td>
+                    <td class="col-name"><?php echo $label; ?></td>
+                    <td class="col-qty">
+                        <form method="post" action="cart-action.php" class="qty-control">
+                            <input type="hidden" name="product_id" value="<?php echo $line['product_id']; ?>">
+                            <input type="hidden" name="return" value="cart.php">
+                            <button type="submit" name="action" value="decrease"
+                                    class="btn btn-step"
+                                    aria-label="Decrease quantity of <?php echo $label; ?>">&minus;</button>
+                            <span class="qty-value"><?php echo $line['quantity']; ?></span>
+                            <button type="submit" name="action" value="increase"
+                                    class="btn btn-step"
+                                    aria-label="Increase quantity of <?php echo $label; ?>">+</button>
+                        </form>
+                    </td>
+                    <td class="col-cost">$<?php echo money($line['cost_cents']); ?></td>
+                    <td class="col-total">$<?php echo money($line['line_total_cents']); ?></td>
+                    <td class="col-actions">
+                        <form method="post" action="cart-action.php" class="action-control">
+                            <input type="hidden" name="product_id" value="<?php echo $line['product_id']; ?>">
+                            <input type="hidden" name="return" value="cart.php">
+                            <button type="submit" name="action" value="remove"
+                                    class="btn btn-remove"
+                                    aria-label="Remove <?php echo $label; ?> from cart">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="order-summary">
+        <h2>Order Summary</h2>
+        <dl>
+            <dt>Total of Items Ordered</dt>
+            <dd>$<?php echo money($totals['items_total_cents']); ?></dd>
+
+            <dt>Tax (<?php echo (int) (CART_TAX_RATE * 100); ?>%)</dt>
+            <dd>$<?php echo money($totals['tax_cents']); ?></dd>
+
+            <dt>Shipping &amp; Handling (<?php echo (int) (CART_SHIPPING_RATE * 100); ?>%)</dt>
+            <dd>$<?php echo money($totals['shipping_cents']); ?></dd>
+
+            <dt class="grand">Order Total</dt>
+            <dd class="grand">$<?php echo money($totals['order_total_cents']); ?></dd>
+        </dl>
+    </div>
+
+    <div class="page-actions">
+        <a class="btn btn-primary" href="index.php">Continue Shopping</a>
+        <form method="post" action="cart-action.php">
+            <button type="submit" name="action" value="checkout" class="btn btn-checkout">Check Out</button>
+        </form>
+    </div>
 
 <?php endif; ?>
-
-<div class="order-summary">
-    <h2>Order Summary</h2>
-    <dl>
-        <dt>Total of Items Ordered</dt>
-        <dd>$<?php echo number_format($itemsTotal, 2); ?></dd>
-
-        <dt>Tax (<?php echo number_format(TAX_RATE * 100, 0); ?>%)</dt>
-        <dd>$<?php echo number_format($tax, 2); ?></dd>
-
-        <dt>Shipping &amp; Handling (<?php echo number_format(SHIPPING_RATE * 100, 0); ?>%)</dt>
-        <dd>$<?php echo number_format($shipping, 2); ?></dd>
-
-        <dt class="grand">Order Total</dt>
-        <dd class="grand">$<?php echo number_format($orderTotal, 2); ?></dd>
-    </dl>
-</div>
-
-<p class="page-actions">
-    <a class="btn btn-primary" href="index.php">Continue Shopping</a>
-    <button type="button" class="btn btn-checkout" disabled title="Available in Week 3">Check Out</button>
-</p>
 
 <?php require __DIR__ . '/includes/footer.php'; ?>
