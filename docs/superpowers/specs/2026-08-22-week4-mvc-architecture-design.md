@@ -108,7 +108,8 @@ config/database.php            PDO connection factory (unchanged from Week 3)
 
 core/bootstrap.php             Autoloader registration, error settings, session start
 core/Router.php                Route table and pure resolve()
-core/View.php                  Template rendering into the layout; e() escape helper
+core/View.php                  Template rendering into the layout
+core/helpers.php               e() escaping, url() building, redirect_to()
 
 controllers/CatalogController.php
 controllers/CartController.php
@@ -125,8 +126,9 @@ views/error/not-found.php      404 body
 
 css/style.css                  Unchanged
 database/onlinestore.sql       Unchanged
-tests/                         run.php, lib.php, test_cart.php, test_products.php,
-                               test_money.php, test_router.php
+tests/                         run.php, lib.php, test_money.php, test_cart.php,
+                               test_session_cart.php, test_products.php,
+                               test_view.php, test_router.php
 ```
 
 **Removed:** `cart.php`, `cart-action.php`, `includes/cart.php`,
@@ -328,9 +330,14 @@ new structure makes the fix natural, not as unrelated opportunistic changes.
 whatever `product_id` it is given. Nothing checks the product exists. The id
 sits in the session, and the cart page silently skips it, so the visitor's
 "Add to Cart" appears to do nothing with no explanation. `Product->byId()`
-gives `CartController::add` a real existence check: an unknown id is rejected
-and the cart is left untouched. This is also what justifies `byId()` existing —
-the Week 4 plan promised the method, and this is its caller.
+gives the controller a real existence check: an unknown id is rejected and the
+cart is left untouched. This is also what justifies `byId()` existing — the
+Week 4 plan promised the method, and this is its caller.
+
+The guard applies to every operation that can *create* a new cart line —
+`add` and `increase`. `remove` and `decrease` only ever shrink the cart, so
+they need no database round-trip. Stating the rule that way keeps it to one
+sentence and leaves no operation ambiguously covered.
 
 **7.2 The footer states the wrong milestone.** `includes/footer.php` describes
 the Week 3 build. `views/layout.php` describes Week 4.
@@ -383,6 +390,8 @@ clear "class not found" error, and only then is the class implemented.
 | `test_cart.php` | Quantity rules, clamping, line building, totals, rounding — ported from Week 3 |
 | `test_products.php` | `all()`, `byId()`, `byIds()`, prepared-statement safety — ported, plus `byId()` cases |
 | `test_money.php` | `toCents()` and `format()`, split out of the Week 3 cart tests |
+| `test_session_cart.php` | Load, save, round-trip, sanitizing of stored data, flash lifecycle |
+| `test_view.php` | `e()` escaping, `url()` building, rejection of unknown and traversing template names |
 | `test_router.php` | Resolution, default action, unknown action, verb mismatch, table completeness |
 
 `test_products.php` remains an integration test against the real `onlinestore`
