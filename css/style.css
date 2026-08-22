@@ -382,3 +382,12 @@ main.wrap {
     .catalog-table { min-width: 520px; }
     .order-summary { max-width: none; }
 }
+
+/* Week 4: the quantity and action controls became wrappers around one form
+   per button, because each button now posts to its own front-controller
+   action and nested forms are invalid HTML. The forms must not add layout of
+   their own, so the wrapper's flex row stays visually identical to Week 3. */
+.qty-control > form,
+.action-control > form {
+    display: contents;
+}
