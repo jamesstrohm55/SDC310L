@@ -59,9 +59,19 @@ final class View
         // EXTR_SKIP so a data key can never overwrite $path or $template.
         extract($data, EXTR_SKIP);
 
+        // The finally matters: if the template throws part-way through, an
+        // abandoned buffer would be flushed by PHP at shutdown, producing a
+        // half-drawn page with the fatal appended rather than a clean failure.
         ob_start();
-        require $path;
 
-        return (string) ob_get_clean();
+        try {
+            require $path;
+
+            return (string) ob_get_clean();
+        } catch (Throwable $e) {
+            ob_end_clean();
+
+            throw $e;
+        }
     }
 }

@@ -35,7 +35,16 @@ final class CartController
         // Only the products actually in the cart are fetched, rather than the
         // whole catalog, so the query stays proportional to the order.
         $products = (new Product($this->pdo))->byIds(array_keys($cart->items()));
-        $lines    = $cart->lines($products);
+
+        // Drop anything whose product has left the catalog. Without this the
+        // nav badge counts entries the page does not render, and the stale
+        // entry is never cleared. byIds queried exactly the cart's ids, so a
+        // missing row means the product is genuinely gone — a database that
+        // could not be reached would have exited in config/database.php.
+        $cart->retain(array_keys($products));
+        SessionCart::save($cart);
+
+        $lines = $cart->lines($products);
 
         return [
             'view' => 'cart/index',
@@ -116,10 +125,15 @@ final class CartController
         return ['redirect' => Router::DEFAULT_ACTION];
     }
 
-    /** The submitted product id, or 0 when absent or non-numeric. */
+    /**
+     * The submitted product id, or 0 when absent, non-numeric, or not scalar.
+     *
+     * post_int() rejects arrays rather than casting them: (int) on an array is
+     * 1 in PHP, so `product_id[]=99` would otherwise act on product 1.
+     */
     private function productId(): int
     {
-        return (int) ($_POST['product_id'] ?? 0);
+        return post_int('product_id');
     }
 
     /**
@@ -137,7 +151,7 @@ final class CartController
     /** Redirect back to the page the form was submitted from. */
     private function back(): array
     {
-        $requested = (string) ($_POST['return'] ?? Router::DEFAULT_ACTION);
+        $requested = post_string('return', Router::DEFAULT_ACTION);
 
         return [
             'redirect' => in_array($requested, self::RETURN_ROUTES, true)

@@ -89,6 +89,15 @@ assert_same(null, Router::resolve('cart.add', 'DELETE'), 'an unrelated verb does
 assert_true(is_array(Router::resolve('catalog', 'get')), 'a lowercase verb still resolves');
 assert_true(is_array(Router::resolve('cart.add', 'post')), 'a lowercase POST verb still resolves');
 
+// HEAD is a GET without a body. If it did not resolve, the front controller
+// would treat it as a wrong-verb hit and redirect — and the client would
+// re-issue HEAD to the redirect target, looping forever.
+assert_true(is_array(Router::resolve('catalog', 'HEAD')), 'HEAD resolves a GET page');
+assert_same('CatalogController', Router::resolve('catalog', 'HEAD')['controller'], 'HEAD routes to the GET controller');
+assert_same('index', Router::resolve('cart', 'HEAD')['method'], 'HEAD resolves the cart page too');
+assert_true(is_array(Router::resolve(null, 'head')), 'a lowercase HEAD resolves');
+assert_same(null, Router::resolve('cart.add', 'HEAD'), 'HEAD does not resolve a POST-only action');
+
 // ---------------------------------------------------------------------------
 describe('Router::resolve — unknown actions');
 

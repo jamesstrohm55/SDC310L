@@ -44,6 +44,34 @@ function url(string $action = ''): string
 }
 
 /**
+ * Read a submitted value as an integer, rejecting anything non-scalar.
+ *
+ * The cast matters: (int) on an array yields 1 in PHP with no warning, so a
+ * crafted `product_id[]=99` would silently act on product 1 rather than being
+ * rejected. Anything that is not a scalar becomes 0, which names no product.
+ */
+function post_int(string $key): int
+{
+    $raw = $_POST[$key] ?? null;
+
+    return is_scalar($raw) ? (int) $raw : 0;
+}
+
+/**
+ * Read a submitted value as a string, rejecting anything non-scalar.
+ *
+ * (string) on an array raises "Array to string conversion" and yields the
+ * literal "Array", which on a host that displays warnings would emit output
+ * before the redirect header and break it.
+ */
+function post_string(string $key, string $default = ''): string
+{
+    $raw = $_POST[$key] ?? null;
+
+    return is_scalar($raw) ? (string) $raw : $default;
+}
+
+/**
  * Send a See Other redirect to a route and stop.
  *
  * 303 rather than 302 so the browser is required to follow with GET, which is
