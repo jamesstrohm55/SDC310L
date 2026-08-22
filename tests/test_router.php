@@ -105,23 +105,21 @@ assert_same(7, count($actions), 'the table declares seven routes');
 assert_true(in_array('catalog', $actions, true), 'the catalog route is in the table');
 assert_true(in_array('cart.checkout', $actions, true), 'the checkout route is in the table');
 
-// RESTORED IN TASK 7 — the controllers do not exist yet. Every route must
-// name a controller method that actually exists, or the route table and the
-// controllers can drift apart silently.
-//
-// foreach ($actions as $action) {
-//     foreach (['GET', 'POST'] as $verb) {
-//         $route = Router::resolve($action, $verb);
-//         if ($route === null) {
-//             continue;
-//         }
-//         assert_true(
-//             class_exists($route['controller']),
-//             $action . ' names a controller class that exists'
-//         );
-//         assert_true(
-//             method_exists($route['controller'], $route['method']),
-//             $action . ' names a controller method that exists'
-//         );
-//     }
-// }
+// Every route must name a controller method that actually exists, or the
+// route table and the controllers can drift apart silently.
+foreach ($actions as $action) {
+    foreach (['GET', 'POST'] as $verb) {
+        $route = Router::resolve($action, $verb);
+        if ($route === null) {
+            continue;
+        }
+        assert_true(
+            class_exists($route['controller']),
+            $action . ' names a controller class that exists'
+        );
+        assert_true(
+            method_exists($route['controller'], $route['method']),
+            $action . ' names a controller method that exists'
+        );
+    }
+}
