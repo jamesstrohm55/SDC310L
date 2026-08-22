@@ -9,8 +9,6 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../core/Router.php';
-
 // ---------------------------------------------------------------------------
 describe('Router::normalize');
 

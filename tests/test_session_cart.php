@@ -9,10 +9,6 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../models/Money.php';
-require_once __DIR__ . '/../models/Cart.php';
-require_once __DIR__ . '/../models/SessionCart.php';
-
 // ---------------------------------------------------------------------------
 describe('SessionCart::load');
 

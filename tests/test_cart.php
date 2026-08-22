@@ -9,9 +9,6 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../models/Money.php';
-require_once __DIR__ . '/../models/Cart.php';
-
 // Stand-in catalog, keyed by product_id, matching what Product::byIds returns.
 $catalog = [
     1 => ['product_id' => 1, 'product_name' => 'Trailhead 45L Backpack', 'product_cost' => '129.99'],
