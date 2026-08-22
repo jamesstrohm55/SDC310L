@@ -109,6 +109,24 @@ final class Cart
     }
 
     /**
+     * Drop any cart entry whose product is not in the given id list.
+     *
+     * A cart can outlive a product being deleted from the catalog. Left in
+     * place, a stale entry is counted by itemCount() but skipped by lines(),
+     * so the navigation badge and the rendered cart disagree and nothing ever
+     * clears the entry. Pruning against the products the catalog actually
+     * returned keeps the two in step.
+     *
+     * @param array<int|string> $productIds
+     */
+    public function retain(array $productIds): void
+    {
+        $keep = array_flip(array_map('intval', $productIds));
+
+        $this->items = array_intersect_key($this->items, $keep);
+    }
+
+    /**
      * Join the cart against catalog rows to produce display lines.
      *
      * A cart entry whose product is no longer in the catalog is skipped

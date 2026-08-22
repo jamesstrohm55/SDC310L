@@ -35,6 +35,53 @@ assert_same('index.php?action=cart.add', url('cart.add'), 'a dotted action is no
 assert_same('index.php?action=cart.checkout', url('cart.checkout'), 'the checkout action builds correctly');
 
 // ---------------------------------------------------------------------------
+describe('post_int()');
+
+// (int) on an array yields 1 in PHP with no warning, so a crafted
+// product_id[]=99 would silently act on product 1. Non-scalar input must
+// become 0, which names no product.
+$_POST = ['product_id' => '7'];
+assert_same(7, post_int('product_id'), 'a numeric string becomes an integer');
+
+$_POST = ['product_id' => 7];
+assert_same(7, post_int('product_id'), 'an integer passes through');
+
+$_POST = [];
+assert_same(0, post_int('product_id'), 'an absent key is 0');
+
+$_POST = ['product_id' => ['99']];
+assert_same(0, post_int('product_id'), 'an array is rejected as 0, not cast to 1');
+
+$_POST = ['product_id' => []];
+assert_same(0, post_int('product_id'), 'an empty array is rejected as 0');
+
+$_POST = ['product_id' => null];
+assert_same(0, post_int('product_id'), 'a null value is 0');
+
+$_POST = ['product_id' => 'abc'];
+assert_same(0, post_int('product_id'), 'a non-numeric string is 0');
+
+$_POST = ['product_id' => '3abc'];
+assert_same(3, post_int('product_id'), 'a numeric prefix is taken, as intval does');
+
+// ---------------------------------------------------------------------------
+describe('post_string()');
+
+$_POST = ['return' => 'cart'];
+assert_same('cart', post_string('return', 'catalog'), 'a string passes through');
+
+$_POST = [];
+assert_same('catalog', post_string('return', 'catalog'), 'an absent key gives the default');
+
+$_POST = ['return' => ['cart']];
+assert_same('catalog', post_string('return', 'catalog'), 'an array gives the default rather than warning');
+
+$_POST = ['return' => null];
+assert_same('catalog', post_string('return', 'catalog'), 'a null value gives the default');
+
+$_POST = [];
+
+// ---------------------------------------------------------------------------
 describe('View::render');
 
 // Rendering an unknown template must be a loud failure, not a blank page.
@@ -53,3 +100,19 @@ assert_throws(
     static fn () => View::render('catalog/../../config/database'),
     'a traversal buried mid-path is rejected'
 );
+
+// A template that throws after rendering has begun must not leave the output
+// buffer open, or PHP flushes the half-drawn page at shutdown with the fatal
+// appended, instead of failing cleanly.
+$bufferDepth = ob_get_level();
+assert_throws(
+    static fn () => View::render('catalog/index', [
+        'products'  => [['product_id' => 1, 'product_name' => 'x',
+                         'product_description' => 'y', 'product_cost' => '1.00']],
+        'cart'      => null,   // the template calls $cart->quantity() and dies
+        'flash'     => null,
+        'cartCount' => 0,
+    ]),
+    'a template that throws mid-render propagates the error'
+);
+assert_same($bufferDepth, ob_get_level(), 'a failed render leaves no output buffer open');

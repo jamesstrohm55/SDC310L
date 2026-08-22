@@ -1,0 +1,26 @@
+# SDC310L Online Store — James Strohm (jamstr441)
+#
+# Week 4: the MVC restructure put views/, models/, controllers/, core/, and
+# config/ under the document root. Without this rule every one of them is
+# fetchable directly — config/database.php in particular would open a real
+# MySQL connection for any anonymous request, and a view template would render
+# a fragment outside its controller.
+#
+# The rule is written per directory rather than per filename: a <Files>
+# grant for "index.php" matches by basename, so it would also re-open
+# views/catalog/index.php and views/cart/index.php.
+#
+# index.php at the repository root is the application's single entry point and
+# is the only PHP file that needs to be reachable. css/ and docs/ are
+# unaffected.
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(config|core|controllers|models|views|tests|database)/ - [F,L]
+</IfModule>
+
+# If mod_rewrite is unavailable, fall back to denying those directories by
+# name so the protection does not silently disappear.
+<IfModule !mod_rewrite.c>
+    RedirectMatch 403 ^/.*/(config|core|controllers|models|views|tests|database)/
+</IfModule>

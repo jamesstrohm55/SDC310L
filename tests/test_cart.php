@@ -131,6 +131,42 @@ assert_same([], $cart->items(), 'clear empties the whole cart');
 assert_true($cart->isEmpty(), 'a cleared cart reports itself empty');
 
 // ---------------------------------------------------------------------------
+describe('Cart::retain');
+
+// A cart can outlive a product being deleted from the catalog. Left alone, the
+// stale entry is counted by itemCount() but skipped by lines(), so the nav
+// badge and the rendered cart disagree and nothing ever clears it.
+$cart = new Cart([1 => 2, 99 => 3]);
+$cart->retain([1, 3, 5]);
+assert_same([1 => 2], $cart->items(), 'entries whose product is gone are dropped');
+assert_same(2, $cart->itemCount(), 'the item count no longer counts the dropped entry');
+
+$cart = new Cart([1 => 2, 3 => 1]);
+$cart->retain([1, 3]);
+assert_same([1 => 2, 3 => 1], $cart->items(), 'nothing is dropped when every product still exists');
+
+$cart = new Cart([1 => 2]);
+$cart->retain([]);
+assert_same([], $cart->items(), 'an empty catalog empties the cart');
+
+$cart = new Cart();
+$cart->retain([1, 2]);
+assert_same([], $cart->items(), 'retaining on an empty cart is a no-op');
+
+$cart = new Cart([1 => 2, 99 => 3]);
+$cart->retain(['1']);
+assert_same([1 => 2], $cart->items(), 'string ids from a query result still match');
+
+// After retain, itemCount and lines must agree — the whole point of the method.
+$cart = new Cart([1 => 2, 99 => 3]);
+$cart->retain(array_keys($catalog));
+assert_same(
+    $cart->itemCount(),
+    array_sum(array_column($cart->lines($catalog), 'quantity')),
+    'after retain the item count matches the rendered lines'
+);
+
+// ---------------------------------------------------------------------------
 describe('Cart::quantity and Cart::itemCount');
 
 assert_same(4, (new Cart([2 => 4]))->quantity(2), 'reports the quantity of a product in the cart');

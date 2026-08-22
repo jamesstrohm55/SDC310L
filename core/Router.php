@@ -73,7 +73,17 @@ final class Router
 
         [$controller, $handler, $verb] = self::ROUTES[$action];
 
-        if (strtoupper($method) !== $verb) {
+        $method = strtoupper($method);
+
+        // HEAD is a GET without a response body. If it did not resolve, the
+        // front controller would read it as a wrong-verb hit and redirect —
+        // and the client would re-issue HEAD against the redirect target,
+        // looping until it gave up. Every hop would also mint a session.
+        if ($method === 'HEAD') {
+            $method = 'GET';
+        }
+
+        if ($method !== $verb) {
             return null;
         }
 
