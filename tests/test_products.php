@@ -1,6 +1,6 @@
 <?php
 /**
- * Tests for product database access.
+ * Tests for the Product model.
  *
  * These are integration tests: they run against the real `onlinestore`
  * database created by database/onlinestore.sql. If the database has not been
@@ -9,9 +9,10 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../includes/products.php';
+require_once __DIR__ . '/../models/Product.php';
 
 $pdo = require __DIR__ . '/../config/database.php';
+$products = new Product($pdo);
 
 // ---------------------------------------------------------------------------
 describe('database connection');
@@ -31,9 +32,9 @@ assert_same(
 );
 
 // ---------------------------------------------------------------------------
-describe('products_all');
+describe('Product::all');
 
-$all = products_all($pdo);
+$all = $products->all();
 
 assert_true(count($all) >= 5, 'the catalog holds at least the five required products');
 assert_same(6, count($all), 'the seeded catalog holds six products');
@@ -60,41 +61,54 @@ assert_true(
 );
 
 // ---------------------------------------------------------------------------
-describe('products_by_ids');
+describe('Product::byId');
 
-$some = products_by_ids($pdo, [3, 1]);
+$one = $products->byId(3);
+assert_true(is_array($one), 'a known id returns a row');
+assert_same(3, $one['product_id'], 'the row is the requested product');
+assert_same('Cascade 2-Person Tent', $one['product_name'], 'the row carries the product name');
+assert_same('249.00', $one['product_cost'], 'the row carries the exact cost');
+
+assert_same(null, $products->byId(9999), 'an unknown id returns null rather than an empty array');
+assert_same(null, $products->byId(0), 'a zero id returns null');
+assert_same(null, $products->byId(-1), 'a negative id returns null');
+
+// ---------------------------------------------------------------------------
+describe('Product::byIds');
+
+$some = $products->byIds([3, 1]);
 
 assert_same(2, count($some), 'returns exactly the requested products');
 assert_same([1, 3], array_keys($some), 'the result is keyed by product id for direct lookup');
 assert_same('Cascade 2-Person Tent', $some[3]['product_name'], 'the keyed row is the right product');
 assert_same('249.00', $some[3]['product_cost'], 'the keyed row carries the exact cost');
 
-assert_same([], products_by_ids($pdo, []), 'an empty id list returns an empty array without querying');
-assert_same([], products_by_ids($pdo, [9999]), 'unknown ids return no rows rather than erroring');
+assert_same([], $products->byIds([]), 'an empty id list returns an empty array without querying');
+assert_same([], $products->byIds([9999]), 'unknown ids return no rows rather than erroring');
 assert_same(
     [1],
-    array_keys(products_by_ids($pdo, [1, 9999])),
+    array_keys($products->byIds([1, 9999])),
     'a mix of known and unknown ids returns only the known ones'
 );
 
 // A cart id arriving from a request is a string; it must still match.
 assert_same(
     [1],
-    array_keys(products_by_ids($pdo, ['1'])),
+    array_keys($products->byIds(['1'])),
     'string ids from request input are coerced and still match'
 );
 
 // ---------------------------------------------------------------------------
 describe('sql injection safety');
 
-// products_by_ids builds an IN (...) list, which is the one place a naive
+// byIds builds an IN (...) list, which is the one place a naive
 // implementation would interpolate. Two defenses have to hold: ids are cast to
 // int before the query, and the values are bound rather than concatenated.
 
 // A wholly non-numeric payload casts to 0 and therefore matches nothing.
 assert_same(
     [],
-    products_by_ids($pdo, ["'); DROP TABLE products; --"]),
+    $products->byIds(["'); DROP TABLE products; --"]),
     'a non-numeric hostile id matches no product'
 );
 
@@ -103,8 +117,13 @@ assert_same(
 // rather than executing anything.
 assert_same(
     [1],
-    array_keys(products_by_ids($pdo, ['1); DROP TABLE products; --'])),
+    array_keys($products->byIds(['1); DROP TABLE products; --'])),
     'a hostile id with a numeric prefix degrades to that plain id'
 );
 
-assert_same(6, count(products_all($pdo)), 'the products table survived both hostile ids');
+// byId takes an int parameter, so strict_types rejects a string outright;
+// the surviving risk is a hostile value already cast upstream, which is a
+// plain integer lookup.
+assert_same(null, $products->byId((int) "9999); DROP TABLE products; --"), 'a cast hostile id is an ordinary lookup');
+
+assert_same(6, count($products->all()), 'the products table survived every hostile id');
