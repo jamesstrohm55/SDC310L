@@ -16,6 +16,7 @@ ini_set('display_errors', '1');
 require_once __DIR__ . '/lib.php';
 
 $suites = [
+    __DIR__ . '/test_money.php',
     __DIR__ . '/test_cart.php',
     __DIR__ . '/test_products.php',
 ];
