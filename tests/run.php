@@ -18,6 +18,7 @@ require_once __DIR__ . '/lib.php';
 $suites = [
     __DIR__ . '/test_money.php',
     __DIR__ . '/test_cart.php',
+    __DIR__ . '/test_session_cart.php',
     __DIR__ . '/test_products.php',
 ];
 
