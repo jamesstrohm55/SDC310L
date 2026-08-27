@@ -31,6 +31,7 @@ final class CatalogController
                 'cart'      => $cart,
                 'cartCount' => $cart->itemCount(),
                 'flash'     => SessionCart::flashTake(),
+                'csrfToken' => SessionCart::token(),
             ],
         ];
     }

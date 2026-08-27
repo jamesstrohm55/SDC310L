@@ -20,6 +20,7 @@ $suites = [
     __DIR__ . '/test_money.php',
     __DIR__ . '/test_cart.php',
     __DIR__ . '/test_session_cart.php',
+    __DIR__ . '/test_csrf.php',
     __DIR__ . '/test_products.php',
     __DIR__ . '/test_view.php',
     __DIR__ . '/test_router.php',

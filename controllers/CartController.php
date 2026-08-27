@@ -55,6 +55,7 @@ final class CartController
                 'totals'    => Cart::totals($lines),
                 'cartCount' => $cart->itemCount(),
                 'flash'     => SessionCart::flashTake(),
+                'csrfToken' => SessionCart::token(),
             ],
         ];
     }

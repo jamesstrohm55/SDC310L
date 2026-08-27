@@ -9,7 +9,7 @@
  * controller and the test runner.
  *
  * There is no Composer here. The project is graded on a stock XAMPP install
- * and adding a dependency manager for seven classes is not a trade worth
+ * and adding a dependency manager for nine classes is not a trade worth
  * making.
  */
 
