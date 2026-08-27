@@ -159,7 +159,8 @@ css/style.css                  Store look and feel
 database/onlinestore.sql       Database schema and seed data
 tests/                         PHP suite (php tests/run.php) and
                                end-to-end HTTP script (tests/e2e.sh)
-docs/                          Screenshots, project plan, design spec and plan
+docs/                          Screenshots, project plan, test description,
+                               retrospective, design specs and plans
 ```
 
 There is no Composer. Classes are autoloaded from `models/`, `controllers/`,
@@ -388,6 +389,15 @@ working, which is the constraint that shaped most of the decisions below.
   `htdocs` into a home directory does not work — Apache runs as `daemon` and
   cannot traverse an owner-only home folder.
 - Run `php tests/run.php` and `tests/e2e.sh` before trusting a change.
+
+### Project Documents
+
+| Document | Covers |
+| --- | --- |
+| `docs/SDC310L Project Plan James Strohm.docx` | The week-by-week work breakdown, what was completed, barriers, and lessons learned, for all five weeks |
+| `docs/SDC310L Test Description James Strohm.docx` | The testing performed: environment, approach, fourteen areas tested, nine defects found and fixed, requirements coverage |
+| `docs/SDC310L Retrospective James Strohm.docx` | What went well, what went poorly, whether the plan held, how much work was unplanned, and what would change next time |
+| `docs/superpowers/specs/` | The written design specifications for Weeks 2, 3, and 4 |
 
 ### Link to Project
 
