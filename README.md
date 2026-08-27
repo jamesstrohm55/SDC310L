@@ -151,7 +151,7 @@ models/SessionCart.php         Session storage (cart, flash, CSRF token)
 models/Csrf.php                CSRF token minting and comparison
 
 views/layout.php               Document shell, header, navigation, footer
-views/catalog/index.php        Catalog table
+views/catalog/index.php        Catalog product cards
 views/cart/index.php           Cart table and order summary
 views/error/not-found.php      404 body
 

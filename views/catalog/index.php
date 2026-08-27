@@ -61,7 +61,7 @@
                 </p>
 
                 <div class="product-qty">
-                    <span class="meta-label" id="qty-label-<?php echo $id; ?>">Quantity ordered</span>
+                    <span class="meta-label" aria-hidden="true">Quantity ordered</span>
                     <div class="qty-control">
                         <form method="post" action="<?php echo url('cart.decrease'); ?>">
                             <?php echo csrf_input($csrfToken); ?>
@@ -71,7 +71,16 @@
                                     aria-label="Decrease quantity of <?php echo $label; ?>"
                                     <?php echo $quantity < 1 ? 'disabled' : ''; ?>>&minus;</button>
                         </form>
-                        <span class="qty-value" aria-labelledby="qty-label-<?php echo $id; ?>"><?php
+                        <?php /* The label is a real text node immediately before the
+                                 number, not an aria-labelledby reference: a bare <span>
+                                 has no role, so most screen readers compute no accessible
+                                 name for one and the association is silently dropped.
+                                 This is visually hidden and read in document order with
+                                 the number, so the visible label above is aria-hidden to
+                                 avoid announcing the same thing twice. */ ?>
+                        <span class="visually-hidden">Quantity ordered for <?php
+                            echo $label; ?>: </span>
+                        <span class="qty-value" data-qty="<?php echo $id; ?>"><?php
                             echo $quantity; ?></span>
                         <form method="post" action="<?php echo url('cart.increase'); ?>">
                             <?php echo csrf_input($csrfToken); ?>

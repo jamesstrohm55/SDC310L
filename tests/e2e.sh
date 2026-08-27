@@ -26,7 +26,18 @@ ENTRY="$BASE/index.php"
 MYSQL="/Applications/XAMPP/xamppfiles/bin/mariadb"
 
 WORK="$(mktemp -d)"
-trap 'rm -rf "$WORK"' EXIT
+
+# The escaping check inserts a probe product and deletes it again. If the run
+# is interrupted between those two points the row survives, and the next run
+# fails its product count in area A — which reads as an application regression
+# rather than as dirty state. The row is therefore cleaned up on any exit.
+PROBE_ID=9001
+cleanup() {
+    rm -rf "$WORK"
+    "$MYSQL" -u root -e \
+        "DELETE FROM onlinestore.products WHERE product_id = $PROBE_ID;" 2>/dev/null
+}
+trap cleanup EXIT INT TERM
 
 PASSED=0
 FAILED=0
@@ -56,6 +67,24 @@ check() {
 check_contains() {
     local label="$1" needle="$2" file="$3"
     if grep -qF -- "$needle" "$file"; then
+        PASSED=$((PASSED + 1))
+        printf '  ok    %s\n' "$label"
+    else
+        FAILED=$((FAILED + 1))
+        printf '  FAIL  %s\n        page does not contain: %s\n' "$label" "$needle"
+    fi
+}
+
+# check_flat <label> <needle> <file>
+#
+# Like check_contains, but collapses the page's whitespace to single spaces
+# first so a needle can span the source's line breaks. This exists because
+# grep -F treats an embedded newline in the PATTERN as alternation, not as a
+# literal: a two-line needle silently passes if either half is present, which
+# made the disabled-button check below vacuous until a code review caught it.
+check_flat() {
+    local label="$1" needle="$2" file="$3"
+    if tr '\n' ' ' < "$file" | tr -s ' ' | grep -qF -- "$needle"; then
         PASSED=$((PASSED + 1))
         printf '  ok    %s\n' "$label"
     else
@@ -101,10 +130,14 @@ post() {
 }
 
 # qty <jar> <product_id> -> the quantity shown for that product on the catalog
+#
+# data-qty is a test hook on the element holding the number, so the anchor is
+# the number's own element rather than a nearby label. The label moved once
+# already for an accessibility fix and silently took this helper with it.
 qty() {
     curl -s -c "$1" -b "$1" "$ENTRY" \
         | tr '\n' ' ' \
-        | grep -o "qty-label-$2\"[^>]*>[0-9]*" \
+        | grep -o "data-qty=\"$2\">[0-9]*" \
         | grep -o '[0-9]*$'
 }
 
@@ -116,8 +149,42 @@ summary() {
         | grep -o '[0-9,.]*$'
 }
 
+# read_row_count -> sets $ROW_COUNT, or returns non-zero.
+#
+# Without this guard, a missing client or a stopped database makes both sides
+# of a before/after comparison the empty string, and comparing '' to '' reports
+# a pass — the same masked failure the PHP suite's exit code was fixed for, and
+# it would silently gut the injection check below.
+#
+# The count is returned through a global rather than by echoing it, because a
+# function called as $(...) runs in a subshell where `exit` only leaves the
+# subshell. The first version of this guard did exactly that: the script sailed
+# past a dead database and still reported 69 checks passed.
+ROW_COUNT=''
+read_row_count() {
+    local n
+    n=$("$MYSQL" -u root -N -e "SELECT COUNT(*) FROM onlinestore.products;" 2>/dev/null) \
+        || return 1
+    case "$n" in
+        ''|*[!0-9]*) return 1 ;;
+    esac
+    ROW_COUNT="$n"
+}
+
+require_database() {
+    if ! read_row_count; then
+        printf '\nFATAL: could not read the products table using %s\n' "$MYSQL" >&2
+        printf 'The database checks cannot run, so this script will not report a pass.\n' >&2
+        exit 2
+    fi
+}
+
 printf '\033[1mSDC310L end-to-end tests\033[0m\n'
 printf 'Target: %s\n' "$BASE"
+
+# Fail loudly and early rather than half-running.
+require_database
+printf 'Products in the database: %s\n' "$ROW_COUNT"
 
 # ===========================================================================
 area 'A. Catalog page'
@@ -138,9 +205,9 @@ check_contains 'quantity ordered is shown'      'Quantity ordered' "$WORK/page.h
 check_contains 'an add-to-cart control exists'  'Add to Cart' "$WORK/page.html"
 
 check 'a fresh session shows every quantity as zero' '0' "$(qty "$JAR" 1)"
-check_contains 'the minus button is disabled at zero' \
-    'aria-label="Decrease quantity of Trailhead 45L Backpack"
-                                    disabled' "$WORK/page.html"
+check_flat 'the minus button is disabled at zero' \
+    'aria-label="Decrease quantity of Trailhead 45L Backpack" disabled' \
+    "$WORK/page.html"
 
 # ===========================================================================
 area 'B. Cart operations'
@@ -211,10 +278,31 @@ check 'tax is 5% of the pre-tax total'    '25.45'  "$(summary "$JAR" 'Tax (5%)')
 check 'shipping is 10% of the pre-tax total' '50.90' "$(summary "$JAR" 'Shipping')"
 check 'the order total is items + tax + shipping' '585.33' "$(summary "$JAR" 'Order Total')"
 
-# The printed figures must add up to the printed total. This is the property
-# that whole-cent arithmetic exists to guarantee.
-SUM=$(/Applications/XAMPP/xamppfiles/bin/php -r 'echo number_format((50898 + 2545 + 5090) / 100, 2);')
-check 'the printed lines add up to the printed total' '585.33' "$SUM"
+# The four checks above pin the exact figures for one known basket, which is
+# what catches drift between milestones. These three re-derive tax, shipping,
+# and the order total independently from the item total actually shown on the
+# page, applying the documented rules in whole cents. That is what catches a
+# changed rate or a changed rounding rule for any basket, not just this one.
+#
+# Two earlier versions of this check were worth less than they looked. The
+# first summed three hardcoded literals and compared them to a fourth — a
+# tautology over number_format. The second summed the three figures read off
+# the page and compared them to the page's total, which can never fail while
+# the total is computed as exactly that sum. Both were confirmed useless by
+# breaking the tax rule and watching them stay green.
+ITEMS=$(summary "$JAR" 'Total of Items Ordered' | tr -d ',')
+DERIVED=$(awk -v items="$ITEMS" 'BEGIN {
+    cents = int(items * 100 + 0.5);
+    tax   = int(cents * 0.05 + 0.5);
+    ship  = int(cents * 0.10 + 0.5);
+    printf "%.2f %.2f %.2f", tax / 100, ship / 100, (cents + tax + ship) / 100;
+}')
+check 'tax matches 5% of the item total shown on the page' \
+    "$(echo "$DERIVED" | cut -d' ' -f1)" "$(summary "$JAR" 'Tax (5%)' | tr -d ',')"
+check 'shipping matches 10% of the item total shown on the page' \
+    "$(echo "$DERIVED" | cut -d' ' -f2)" "$(summary "$JAR" 'Shipping' | tr -d ',')"
+check 'the order total matches items plus tax plus shipping' \
+    "$(echo "$DERIVED" | cut -d' ' -f3)" "$(summary "$JAR" 'Order Total' | tr -d ',')"
 
 # ===========================================================================
 area 'D. Checkout'
@@ -305,29 +393,31 @@ post "$JAR" 'cart.add' "product_id[]=9999&return=catalog&csrf_token=$T" > /dev/n
 check 'an array-valued product id does not act on product 1' '0' "$(qty "$JAR" 1)"
 
 # --- SQL injection ---
-BEFORE=$($MYSQL -u root -N -e 'SELECT COUNT(*) FROM onlinestore.products;')
+require_database
+BEFORE="$ROW_COUNT"
 post "$JAR" 'cart.add' \
     "product_id=1%29%3B+DROP+TABLE+products%3B+--&return=catalog&csrf_token=$T" > /dev/null
 post "$JAR" 'cart.add' \
     "product_id=%27%29%3B+DROP+TABLE+products%3B+--&return=catalog&csrf_token=$T" > /dev/null
 page "$JAR" 'cart' > /dev/null
-AFTER=$($MYSQL -u root -N -e 'SELECT COUNT(*) FROM onlinestore.products;')
+require_database
+AFTER="$ROW_COUNT"
 check 'the products table survives an injection payload' "$BEFORE" "$AFTER"
 
 # --- output escaping ---
 # A product name containing markup must be escaped on the way out. Inserted
 # here and removed again, so the check runs against the real render path
 # rather than against e() in isolation.
-$MYSQL -u root -e "DELETE FROM onlinestore.products WHERE product_id = 9001;"
+$MYSQL -u root -e "DELETE FROM onlinestore.products WHERE product_id = $PROBE_ID;"
 $MYSQL -u root -e "INSERT INTO onlinestore.products
     (product_id, product_name, product_description, product_cost)
-    VALUES (9001, '<script>alert(1)</script>', 'XSS probe', 1.00);"
+    VALUES ($PROBE_ID, '<script>alert(1)</script>', 'XSS probe', 1.00);"
 page "$JAR" '' > /dev/null
 check_absent 'an injected script tag is not emitted raw' '<script>alert(1)</script>' "$WORK/page.html"
 check_contains 'an injected script tag is escaped' '&lt;script&gt;alert(1)&lt;/script&gt;' "$WORK/page.html"
-$MYSQL -u root -e "DELETE FROM onlinestore.products WHERE product_id = 9001;"
-check 'the probe product is removed again' "$BEFORE" \
-    "$($MYSQL -u root -N -e 'SELECT COUNT(*) FROM onlinestore.products;')"
+$MYSQL -u root -e "DELETE FROM onlinestore.products WHERE product_id = $PROBE_ID;"
+require_database
+check 'the probe product is removed again' "$BEFORE" "$ROW_COUNT"
 
 # --- open redirect ---
 rm -f "$JAR"

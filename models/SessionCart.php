@@ -47,6 +47,27 @@ final class SessionCart
     }
 
     /**
+     * This session's CSRF token, or null if none has been minted.
+     *
+     * Verifying a submitted token uses this rather than token(), so a POST
+     * from a client with no session is rejected without creating one. token()
+     * would mint and store a value, meaning any anonymous drive-by POST left a
+     * session file behind.
+     */
+    public static function existingToken(): ?string
+    {
+        $stored = $_SESSION[self::CSRF_KEY] ?? null;
+
+        return is_string($stored) && $stored !== '' ? $stored : null;
+    }
+
+    /** Whether a one-time message is already waiting to be shown. */
+    public static function hasFlash(): bool
+    {
+        return isset($_SESSION[self::FLASH_KEY]);
+    }
+
+    /**
      * This session's CSRF token, minting one on first use.
      *
      * The token is stable for the life of the session rather than rotated per

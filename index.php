@@ -49,16 +49,28 @@ if ($route === null) {
 // request plumbing, and one choke point cannot be forgotten by a route added
 // later, whereas five separate call sites can.
 //
-// A rejected request changes nothing and is sent to the catalog. The visitor
-// is told why, because the honest common cause is not an attack — it is a
-// form left open until the session expired.
+// A rejected request touches no cart and reaches no controller, and is sent to
+// the catalog. The visitor is told why, because the honest common cause is not
+// an attack — it is a form left open until the session expired.
+//
+// existingToken() rather than token(): a request that has no token of its own
+// is rejected by comparison against nothing, without a fresh one being minted
+// and stored for it. The session itself is still created — SessionCart::start()
+// above runs for every request, as it has since Week 3, because every page
+// needs the cart to render its badge.
 if ($route['verb'] === 'POST'
-    && !Csrf::matches(SessionCart::token(), post_string('csrf_token'))) {
-    SessionCart::flashSet(
-        'That request could not be verified, so nothing was changed. '
-        . 'Your session may have expired — please try again.',
-        'warning'
-    );
+    && !Csrf::matches(SessionCart::existingToken(), post_string('csrf_token'))) {
+    // A message already waiting is left alone. Otherwise a forged POST landing
+    // between a visitor's checkout and their redirect would replace "Thank you
+    // for your order" with a failure notice, telling them the order they had
+    // just completed had not gone through.
+    if (!SessionCart::hasFlash()) {
+        SessionCart::flashSet(
+            'That request could not be verified, so nothing was changed. '
+            . 'Your session may have expired — please try again.',
+            'warning'
+        );
+    }
 
     redirect_to(Router::DEFAULT_ACTION);
 }
