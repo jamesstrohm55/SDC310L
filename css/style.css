@@ -330,8 +330,8 @@ main.wrap {
    visible without scrolling past a long cart. Below 900px it stacks. */
 .cart-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 320px;
-    gap: 24px;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 20px;
     align-items: start;
 }
 
@@ -356,18 +356,24 @@ main.wrap {
     border-collapse: collapse;
 }
 
+/* The headers wrap. They were nowrap, which set each column's minimum to the
+   width of its full header text — "Quantity Ordered" alone is wider than the
+   control beneath it — and that pushed the table past the space the Week 5
+   two-column layout gives it, clipping the Remove buttons off the right edge
+   of the scroll container. Wrapping costs one extra header line and lets the
+   columns size to their data instead. */
 .cart-table th {
     background: var(--forest);
     color: var(--paper);
     font-size: 11px;
-    letter-spacing: 0.07em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    padding: 12px 14px;
-    white-space: nowrap;
+    padding: 12px;
+    vertical-align: bottom;
 }
 
 .cart-table td {
-    padding: 15px 14px;
+    padding: 15px 12px;
     border-top: 1px solid var(--line);
     vertical-align: middle;
 }
@@ -385,12 +391,21 @@ main.wrap {
 
 .cart-table .col-qty { text-align: center; }
 
-.col-id    { width: 90px;  color: var(--ink-soft); font-variant-numeric: tabular-nums; }
-.col-name  { width: 200px; font-weight: 600; color: var(--forest); }
-.col-cost  { width: 110px; font-variant-numeric: tabular-nums; }
-.col-total { width: 110px; font-variant-numeric: tabular-nums; font-weight: 700; }
-.col-qty   { width: 140px; }
-.cart-table .col-actions { width: 110px; white-space: nowrap; }
+/* The fixed widths have to sum to less than the space the table actually
+   gets. Beside the 320px summary that is roughly 700px, not the full page
+   width the cart had before Week 5 — the first draft of this layout kept the
+   old widths, overflowed by about 60px, and left the Remove buttons clipped
+   at the edge of the scroll container. The name column is deliberately not
+   fixed, so it absorbs whatever slack is left over. */
+.col-id    { width: 56px;  color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.col-name  { min-width: 150px; font-weight: 600; color: var(--forest); }
+.col-cost  { width: 88px;  font-variant-numeric: tabular-nums; }
+.col-total { width: 92px;  font-variant-numeric: tabular-nums; font-weight: 700; }
+.col-qty   { width: 128px; }
+.cart-table .col-qty     { min-width: 128px; }
+.cart-table .col-actions { width: 110px; }
+.cart-table td.col-actions,
+.cart-table td.col-qty { white-space: nowrap; }
 
 /* --- Buttons and controls ----------------------------------------------- */
 
@@ -590,7 +605,7 @@ main.wrap {
 
 /* --- Narrow screens ----------------------------------------------------- */
 
-@media (max-width: 900px) {
+@media (max-width: 1000px) {
     .cart-layout { grid-template-columns: 1fr; }
     .order-summary { position: static; max-width: 420px; margin-left: auto; }
 }
