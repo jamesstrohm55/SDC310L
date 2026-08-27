@@ -250,17 +250,23 @@ diffed against the live one. Both are identical.
 
 ## Project schedule
 
-| Week | Focus                                     | Tag      |
-| ---- | ----------------------------------------- | -------- |
-| 1    | Project plan                              | —        |
-| 2    | Database and application framework        | `Phase2` |
-| 3    | Accessing the database using PHP code     | `Phase3` |
-| 4    | Applying the MVC framework                | `Phase4` |
-| 5    | Finalizing the application and testing    | `Phase5` |
+| Week | Focus                                  | Tag                      |
+| ---- | -------------------------------------- | ------------------------ |
+| 1    | Project plan                           | —                        |
+| 2    | Database and application framework     | `Phase2`                 |
+| 3    | Accessing the database using PHP code  | `Phase3`                 |
+| 4    | Applying the MVC framework             | `Phase4-week4`           |
+| 5    | Finalizing the application and testing | `Phase4`, also `Phase5`  |
 
 Git ref names cannot contain spaces, so the assignment's `Phase #2` style is
-tagged as `Phase2`. The tags follow the week number throughout, which is why
-the Week 5 submission is tagged `Phase5`.
+tagged as `Phase2`.
+
+The Week 5 tag needs a word of explanation. Weeks 2 through 4 were tagged by
+week number, so `Phase4` first marked the Week 4 MVC milestone. The Week 5
+assignment asks for a tag named `Phase #4`, so `Phase4` now points at the
+Week 5 submission and the Week 4 snapshot it previously marked is preserved
+as `Phase4-week4`. `Phase5` points at the same commit as `Phase4`, keeping
+the week-aligned scheme intact for anyone reading the history by week.
 
 Each week is developed on its own branch off `main` and merged through a
 GitHub pull request.
