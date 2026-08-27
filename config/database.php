@@ -40,10 +40,22 @@ try {
     // than the page. The visitor gets a plain, actionable sentence.
     error_log('SDC310L database connection failed: ' . $e->getMessage());
 
-    http_response_code(503);
-    exit(
-        'The store is temporarily unavailable because the database could not be '
+    $message = 'The store is temporarily unavailable because the database could not be '
         . 'reached. If you are running this locally, start MySQL in the XAMPP '
-        . 'control panel and import database/onlinestore.sql.'
-    );
+        . 'control panel and import database/onlinestore.sql.';
+
+    // Week 5: exit() given a string prints it and exits with status 0. On a
+    // web request that is harmless, because the 503 above already carries the
+    // failure. On the command line it is not: tests/run.php requires this
+    // file, and a database that was simply not running made the suite stop
+    // part-way through and still report success to the shell — the exact
+    // masked failure a test suite exists to prevent. The command line gets a
+    // real non-zero status and writes to stderr instead of stdout.
+    if (PHP_SAPI === 'cli') {
+        fwrite(STDERR, 'FATAL: ' . $message . PHP_EOL);
+        exit(1);
+    }
+
+    http_response_code(503);
+    exit($message);
 }
