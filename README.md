@@ -26,7 +26,7 @@ reworked the store front, and put the whole thing under test.
   phone it could only be made to fit by hiding every description. The cart
   keeps its table, which really is a ledger, but the order summary now sits
   beside it and follows it down the page.
-- **An end-to-end test script** (`tests/e2e.sh`): 68 checks driving the real
+- **An end-to-end test script** (`tests/e2e.sh`): 70 checks driving the real
   application over HTTP with a session cookie, covering every route, the order
   arithmetic, and every security guard.
 - The PHP suite grew from 234 assertions to 266.
@@ -178,7 +178,7 @@ helpers, and session storage:
 /Applications/XAMPP/xamppfiles/bin/php tests/run.php
 ```
 
-**The end-to-end script** — 68 checks driving the running application over
+**The end-to-end script** — 70 checks driving the running application over
 HTTP with a cookie jar, so the session cart persists between requests exactly
 as it does in a browser:
 
