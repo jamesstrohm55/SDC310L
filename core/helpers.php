@@ -44,6 +44,19 @@ function url(string $action = ''): string
 }
 
 /**
+ * The hidden CSRF field every state-changing form must carry.
+ *
+ * A helper rather than nine copies of the same markup: the store has nine
+ * POST forms, and a field that has to be pasted into each one by hand is a
+ * field a tenth form will be missing. The token itself is passed in — this
+ * function never reaches into the session, so views stay unable to.
+ */
+function csrf_input(string $token): string
+{
+    return '<input type="hidden" name="csrf_token" value="' . e($token) . '">';
+}
+
+/**
  * Read a submitted value as an integer, rejecting anything non-scalar.
  *
  * The cast matters: (int) on an array yields 1 in PHP with no warning, so a

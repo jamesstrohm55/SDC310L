@@ -16,6 +16,7 @@ final class SessionCart
 {
     private const CART_KEY  = 'cart';
     private const FLASH_KEY = 'flash';
+    private const CSRF_KEY  = 'csrf';
 
     /** Start the session unless one is already running. */
     public static function start(): void
@@ -45,22 +46,83 @@ final class SessionCart
         $_SESSION[self::CART_KEY] = $cart->items();
     }
 
-    /** Store a one-time message to show on the next page load. */
-    public static function flashSet(string $message): void
+    /**
+     * This session's CSRF token, minting one on first use.
+     *
+     * The token is stable for the life of the session rather than rotated per
+     * request. Rotating it would invalidate every form already rendered in the
+     * visitor's browser, so a back button or a second open tab would have its
+     * next click rejected as a forgery.
+     *
+     * A stored value that is not a non-empty string — a session written by a
+     * build that predates this feature, or one edited by hand — is replaced
+     * rather than trusted, so Csrf::matches() is never handed a non-string.
+     */
+    public static function token(): string
     {
-        $_SESSION[self::FLASH_KEY] = $message;
+        $stored = $_SESSION[self::CSRF_KEY] ?? null;
+
+        if (!is_string($stored) || $stored === '') {
+            $stored = Csrf::generate();
+            $_SESSION[self::CSRF_KEY] = $stored;
+        }
+
+        return $stored;
     }
 
-    /** Read and clear the one-time message, if any. */
-    public static function flashTake(): ?string
+    /** Flash types the stylesheet renders. Anything else falls back to warning. */
+    private const FLASH_TYPES = ['success', 'warning'];
+
+    /**
+     * Store a one-time message to show on the next page load.
+     *
+     * The type travels with the message because the two flashes this
+     * application raises are opposite in meaning: a completed order and a
+     * rejected request. Rendering the rejection in the success styling would
+     * tell the visitor their action worked when it did not.
+     */
+    public static function flashSet(string $message, string $type = 'success'): void
+    {
+        $_SESSION[self::FLASH_KEY] = [
+            'message' => $message,
+            'type'    => in_array($type, self::FLASH_TYPES, true) ? $type : 'warning',
+        ];
+    }
+
+    /**
+     * Read and clear the one-time message, if any.
+     *
+     * The key is unset before any decision about the stored value, so a
+     * malformed entry is discarded rather than left to be re-read on every
+     * subsequent page load.
+     *
+     * @return array{message:string, type:string}|null
+     */
+    public static function flashTake(): ?array
     {
         if (!isset($_SESSION[self::FLASH_KEY])) {
             return null;
         }
 
-        $message = (string) $_SESSION[self::FLASH_KEY];
+        $stored = $_SESSION[self::FLASH_KEY];
         unset($_SESSION[self::FLASH_KEY]);
 
-        return $message;
+        // Week 4 stored a bare string under this key. A session created by
+        // that build can outlive the upgrade, so it is read rather than
+        // fataling on the array access.
+        if (is_string($stored)) {
+            return ['message' => $stored, 'type' => 'success'];
+        }
+
+        if (!is_array($stored) || !isset($stored['message']) || !is_scalar($stored['message'])) {
+            return null;
+        }
+
+        $type = $stored['type'] ?? '';
+
+        return [
+            'message' => (string) $stored['message'],
+            'type'    => in_array($type, self::FLASH_TYPES, true) ? (string) $type : 'warning',
+        ];
     }
 }

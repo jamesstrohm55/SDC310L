@@ -58,9 +58,44 @@ $_SESSION = [];
 assert_same(null, SessionCart::flashTake(), 'taking an absent flash returns null');
 
 SessionCart::flashSet('Thank you for your order.');
-assert_same('Thank you for your order.', $_SESSION['flash'], 'flashSet stores the message');
-assert_same('Thank you for your order.', SessionCart::flashTake(), 'flashTake returns the message');
+assert_same(
+    ['message' => 'Thank you for your order.', 'type' => 'success'],
+    $_SESSION['flash'],
+    'flashSet stores the message and defaults to the success type'
+);
+assert_same(
+    ['message' => 'Thank you for your order.', 'type' => 'success'],
+    SessionCart::flashTake(),
+    'flashTake returns the message and its type'
+);
 assert_same(null, SessionCart::flashTake(), 'a flash message is consumed by the first take');
 assert_true(!isset($_SESSION['flash']), 'flashTake unsets the session key');
+
+// A rejected request is not good news, so it must not be able to render in
+// the success styling. The type is what the view switches on.
+SessionCart::flashSet('That request could not be verified.', 'warning');
+assert_same(
+    ['message' => 'That request could not be verified.', 'type' => 'warning'],
+    SessionCart::flashTake(),
+    'a warning flash keeps its type through storage'
+);
+
+// Only the two types the stylesheet actually renders are accepted; anything
+// else falls back to the neutral one rather than emitting an unstyled class.
+SessionCart::flashSet('Unknown type.', 'catastrophe');
+assert_same('warning', SessionCart::flashTake()['type'], 'an unrecognised type falls back to warning');
+
+// A session written by the Week 4 build stored a bare string under this key.
+// It must still render rather than fatal on the array access.
+$_SESSION = ['flash' => 'A message from an older build.'];
+assert_same(
+    ['message' => 'A message from an older build.', 'type' => 'success'],
+    SessionCart::flashTake(),
+    'a legacy string flash is upgraded to the array shape'
+);
+
+$_SESSION = ['flash' => ['no message key' => true]];
+assert_same(null, SessionCart::flashTake(), 'a malformed stored flash is discarded');
+assert_true(!isset($_SESSION['flash']), 'a malformed stored flash is cleared, not left to repeat');
 
 $_SESSION = [];

@@ -38,8 +38,29 @@ if ($route === null) {
         'pageTitle' => 'Page Not Found',
         'activeNav' => '',
         'cartCount' => SessionCart::load()->itemCount(),
+        'flash'     => SessionCart::flashTake(),
     ]);
     exit;
+}
+
+// Every state-changing route is a POST, so every POST must carry this
+// session's CSRF token. The check lives here rather than in the five
+// CartController methods for the same reason the verb check does: it is
+// request plumbing, and one choke point cannot be forgotten by a route added
+// later, whereas five separate call sites can.
+//
+// A rejected request changes nothing and is sent to the catalog. The visitor
+// is told why, because the honest common cause is not an attack — it is a
+// form left open until the session expired.
+if ($route['verb'] === 'POST'
+    && !Csrf::matches(SessionCart::token(), post_string('csrf_token'))) {
+    SessionCart::flashSet(
+        'That request could not be verified, so nothing was changed. '
+        . 'Your session may have expired — please try again.',
+        'warning'
+    );
+
+    redirect_to(Router::DEFAULT_ACTION);
 }
 
 $pdo = require __DIR__ . '/config/database.php';
